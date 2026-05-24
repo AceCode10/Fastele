@@ -1,0 +1,37 @@
+project_id = "fastele"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "fastele://"
+additional_redirect_urls = ["fastele://"]
+jwt_expiry = 2592000   # 30-day sessions per spec §5.3
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = false
+
+[auth.sms.twilio]
+enabled = false
+
+[storage]
+enabled = true
+file_size_limit = "5MiB"
+
+[edge_runtime]
+enabled = true
+
+# Per-function JWT settings. Default = verify_jwt = true.
+# airtel-webhook receives callbacks from Airtel (no JWT) — must be public.
+[functions.airtel-webhook]
+verify_jwt = false
