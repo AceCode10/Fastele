@@ -4,14 +4,20 @@
     "strict": true,
     "moduleResolution": "bundler",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.d.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
   ],
-  "exclude": ["supabase/functions/**", "node_modules"]
+  "exclude": [
+    "supabase/functions/**",
+    "node_modules"
+  ]
 }

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Screen, TextField } from '@/components/ui';
+import { LocationPicker, PickedLocation } from '@/components/LocationPicker';
 import { supabase } from '@/lib/supabase';
 import { getDefaults, saveDefaults } from '@/lib/defaults';
 import { useAuth } from '@/stores/authStore';
 import { useTheme } from '@/lib/theme';
 import { assertTapDepth } from '@/lib/threeTap';
+import { DEV_SKIP_PAYMENTS } from '@/lib/featureFlags';
 
 const PICKUP_PRESETS = ['Soweto Market', 'City Market'];
 
@@ -20,7 +22,7 @@ export default function NewRequest() {
   const [items, setItems] = useState('');
   const [pickup, setPickup] = useState<string>('Soweto Market');
   const [pickupOther, setPickupOther] = useState('');
-  const [delivery, setDelivery] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState<PickedLocation | null>(null);
   const [budget, setBudget] = useState('');
   const [fee, setFee] = useState('');
   const [airtelMsisdn, setAirtelMsisdn] = useState('');
@@ -37,27 +39,44 @@ export default function NewRequest() {
           setPickupOther(d.pickup);
         }
       }
-      setDelivery(d.delivery);
+      if (d.delivery && d.deliveryLat != null && d.deliveryLng != null) {
+        setDeliveryLocation({
+          address: d.delivery,
+          latitude: d.deliveryLat,
+          longitude: d.deliveryLng,
+        });
+      }
       setAirtelMsisdn(d.airtelMsisdn);
     });
   }, []);
 
   async function postAndPay() {
     if (!items.trim()) return Alert.alert('Add items', 'Describe what you need bought.');
-    if (!delivery.trim()) return Alert.alert('Delivery address', 'Where should items be sent?');
+    if (!deliveryLocation || !deliveryLocation.address.trim()) {
+      return Alert.alert('Delivery address', 'Pick a delivery location on the map.');
+    }
     const itemBudget = parseFloat(budget);
     const runnerFee = parseFloat(fee);
     if (isNaN(itemBudget) || itemBudget <= 0) return Alert.alert('Item budget', 'Enter amount in kwacha for items.');
     if (isNaN(runnerFee) || runnerFee <= 0) return Alert.alert('Runner fee', 'How much to offer the Runner?');
-    if (!airtelMsisdn.trim()) return Alert.alert('Airtel number', 'Enter Airtel number to pay from.');
+    if (!DEV_SKIP_PAYMENTS && !airtelMsisdn.trim()) {
+      return Alert.alert('Airtel number', 'Enter Airtel number to pay from.');
+    }
 
     const pickupFinal = pickup === 'Other' ? pickupOther.trim() : pickup;
     if (!pickupFinal) return Alert.alert('Pickup location', 'Choose or enter a pickup market.');
 
     setBusy(true);
-    await saveDefaults({ pickup: pickupFinal, delivery, airtelMsisdn });
+    await saveDefaults({
+      pickup: pickupFinal,
+      delivery: deliveryLocation.address,
+      deliveryLat: deliveryLocation.latitude,
+      deliveryLng: deliveryLocation.longitude,
+      airtelMsisdn,
+    });
 
-    // Create request row first (status pending_payment), then trigger Airtel STK via edge function.
+    // Create request row first (status open), then either trigger Airtel STK (real flow)
+    // or call dev-fund-request (test mode) to flip escrow_funded.
     // dispute_reserve + expires_at are set by DB trigger from platform_config (audit #15, #16).
     const itemList = items.split('\n').map((l) => l.trim()).filter(Boolean);
     const { data: req, error: reqErr } = await (supabase as any)
@@ -65,7 +84,9 @@ export default function NewRequest() {
       .insert({
         requester_id: userId,
         pickup_location: pickupFinal,
-        delivery_address: delivery,
+        delivery_address: deliveryLocation.address,
+        delivery_lat: deliveryLocation.latitude,
+        delivery_lng: deliveryLocation.longitude,
         item_list: itemList,
         item_budget: itemBudget,
         runner_fee: runnerFee,
@@ -80,7 +101,29 @@ export default function NewRequest() {
       return Alert.alert('Could not create request', reqErr.message);
     }
 
-    // Trigger Airtel STK push via edge function.
+    if (DEV_SKIP_PAYMENTS) {
+      // Test mode: skip Airtel STK push. Auto-fund the request via
+      // the dev-fund-request edge function so Runners can see it.
+      const { error: fundErr } = await supabase.functions.invoke('dev-fund-request', {
+        body: { requestId: req.id },
+      });
+      setBusy(false);
+      if (fundErr) {
+        await (supabase as any).from('requests').delete().eq('id', req.id);
+        return Alert.alert(
+          'Could not post request',
+          'dev-fund-request failed. Make sure the edge function is deployed and FASTELE_ALLOW_DEV_FUND=true.'
+        );
+      }
+      Alert.alert(
+        'Request posted!',
+        'Runners can now see it. (Test mode — payment skipped.)',
+        [{ text: 'OK', onPress: () => router.replace('/(app)/(requester)') }]
+      );
+      return;
+    }
+
+    // Production path: trigger Airtel STK push via edge function.
     const { error: payErr } = await supabase.functions.invoke('airtel-collect', {
       body: {
         requestId: req.id,
@@ -165,11 +208,11 @@ export default function NewRequest() {
           />
         )}
 
-        <TextField
-          label="Deliver to"
-          placeholder="Garden Compound, plot 12"
-          value={delivery}
-          onChangeText={setDelivery}
+        <Text style={[type.bodyStrong, { color: c.text, marginBottom: 6 }]}>Deliver to</Text>
+        <LocationPicker
+          initial={deliveryLocation}
+          onChange={setDeliveryLocation}
+          hint="Drop the pin or search for the delivery address."
         />
 
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
@@ -193,18 +236,25 @@ export default function NewRequest() {
           </View>
         </View>
 
-        <TextField
-          label="Pay from Airtel number"
-          placeholder="097 1234567"
-          keyboardType="phone-pad"
-          value={airtelMsisdn}
-          onChangeText={setAirtelMsisdn}
-          hint="Funds held in escrow until delivery."
-        />
+        {!DEV_SKIP_PAYMENTS && (
+          <TextField
+            label="Pay from Airtel number"
+            placeholder="097 1234567"
+            keyboardType="phone-pad"
+            value={airtelMsisdn}
+            onChangeText={setAirtelMsisdn}
+            hint="Funds held in escrow until delivery."
+          />
+        )}
+        {DEV_SKIP_PAYMENTS && (
+          <Text style={[type.caption, { color: c.textMuted, fontStyle: 'italic', marginTop: spacing.sm }]}>
+            Test mode — no payment required. Request will be auto-funded so Runners can see it.
+          </Text>
+        )}
       </ScrollView>
 
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: c.bg }}>
-        <Button label="Post & Pay" onPress={postAndPay} loading={busy} />
+        <Button label={DEV_SKIP_PAYMENTS ? 'Post Request' : 'Post & Pay'} onPress={postAndPay} loading={busy} />
       </View>
     </KeyboardAvoidingView>
   );

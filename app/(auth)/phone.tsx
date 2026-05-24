@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Button, Screen, TextField } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
+import { devSignIn, DEV_REQUESTER_EMAIL, DEV_RUNNER_EMAIL } from '@/lib/devAuth';
 
 function normaliseZmPhone(raw: string): string | null {
   const digits = raw.replace(/\D/g, '');
@@ -29,15 +30,10 @@ export default function Phone() {
   }
 
   // DEV-ONLY bypass: skip Twilio OTP until SMS provider configured.
-  async function devSignIn(email: string) {
+  async function runDevSignIn(email: string) {
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: 'DevTest1234!',
-    });
+    await devSignIn(email);
     setBusy(false);
-    if (error) return Alert.alert('Dev sign-in failed', error.message);
-    router.replace('/');
   }
 
   return (
@@ -59,8 +55,8 @@ export default function Phone() {
         <Button label="Send Code" onPress={send} loading={busy} />
         {/* TODO: REMOVE BEFORE PUBLIC RELEASE — exposed in release APK for two-phone OTP-less testing. */}
         <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-          <Button label="Dev: sign in as Requester" variant="secondary" onPress={() => devSignIn('dev-test@fastele.local')} loading={busy} />
-          <Button label="Dev: sign in as Runner" variant="secondary" onPress={() => devSignIn('dev-runner@fastele.local')} loading={busy} />
+          <Button label="Dev: sign in as Requester" variant="secondary" onPress={() => runDevSignIn(DEV_REQUESTER_EMAIL)} loading={busy} />
+          <Button label="Dev: sign in as Runner" variant="secondary" onPress={() => runDevSignIn(DEV_RUNNER_EMAIL)} loading={busy} />
         </View>
       </View>
     </Screen>
