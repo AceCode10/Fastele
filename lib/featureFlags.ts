@@ -18,12 +18,12 @@
 export const DEV_SKIP_OTP = true;
 
 /**
- * When true: hide the "Pay from Airtel number" field on new-request,
- * skip the Airtel STK push, and auto-fund the request via the
+ * When true: hide the "Pay from Mobile Money number" field on new-request,
+ * skip the MoMo prompt, and auto-fund the request via the
  * `dev-fund-request` edge function so Runners can see it.
  *
- * When false: real Airtel Money STK push via the `airtel-collect`
- * edge function; request becomes visible to Runners only after
- * the airtel-webhook flips `escrow_funded`.
+ * When false: real Lipila Mobile Money collection via the `lipila-payments`
+ * edge function (action=collect); request becomes visible to Runners only
+ * after `lipila-callback` flips `escrow_funded` on Successful status.
  */
 export const DEV_SKIP_PAYMENTS = true;

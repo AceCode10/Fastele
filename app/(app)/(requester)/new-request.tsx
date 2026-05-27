@@ -60,7 +60,7 @@ export default function NewRequest() {
     if (isNaN(itemBudget) || itemBudget <= 0) return Alert.alert('Item budget', 'Enter amount in kwacha for items.');
     if (isNaN(runnerFee) || runnerFee <= 0) return Alert.alert('Runner fee', 'How much to offer the Runner?');
     if (!DEV_SKIP_PAYMENTS && !airtelMsisdn.trim()) {
-      return Alert.alert('Airtel number', 'Enter Airtel number to pay from.');
+      return Alert.alert('Mobile Money number', 'Enter the MoMo number to pay from.');
     }
 
     const pickupFinal = pickup === 'Other' ? pickupOther.trim() : pickup;
@@ -123,29 +123,39 @@ export default function NewRequest() {
       return;
     }
 
-    // Production path: trigger Airtel STK push via edge function.
-    const { error: payErr } = await supabase.functions.invoke('airtel-collect', {
+    // Production path: trigger Lipila MoMo collection via edge function.
+    const lipilaRef = `FASTELE-${req.id}`;
+    const { data: payData, error: payErr } = await supabase.functions.invoke('lipila-payments', {
       body: {
-        requestId: req.id,
-        msisdn: airtelMsisdn.replace(/\D/g, ''),
+        action: 'collect',
+        paymentMethod: 'momo',
         amount: itemBudget + runnerFee,
+        accountNumber: airtelMsisdn.replace(/\D/g, ''),
+        referenceId: lipilaRef,
+        narration: 'Fastele escrow',
       },
     });
 
-    setBusy(false);
-
-    if (payErr) {
-      // Roll back request if payment initiation fails.
+    if (payErr || !payData?.success) {
+      setBusy(false);
       await (supabase as any).from('requests').delete().eq('id', req.id);
       return Alert.alert(
         'Payment failed',
-        'Could not initiate Airtel payment. Check your number and try again.'
+        payData?.error || payErr?.message || 'Could not initiate the MoMo prompt. Check your number and try again.'
       );
     }
 
+    // Persist the Lipila reference so the callback can match it back to the row.
+    await (supabase as any)
+      .from('requests')
+      .update({ lipila_reference: payData.referenceId || lipilaRef })
+      .eq('id', req.id);
+
+    setBusy(false);
+
     Alert.alert(
       'Check your phone',
-      'Approve the Airtel Money prompt to fund your request.',
+      'Approve the Mobile Money prompt to fund your request.',
       [{ text: 'OK', onPress: () => router.replace('/(app)/(requester)') }]
     );
   }
@@ -238,12 +248,12 @@ export default function NewRequest() {
 
         {!DEV_SKIP_PAYMENTS && (
           <TextField
-            label="Pay from Airtel number"
-            placeholder="097 1234567"
+            label="Pay from Mobile Money number"
+            placeholder="097 / 096 / 076 1234567"
             keyboardType="phone-pad"
             value={airtelMsisdn}
             onChangeText={setAirtelMsisdn}
-            hint="Funds held in escrow until delivery."
+            hint="MTN or Airtel — funds held in escrow until delivery."
           />
         )}
         {DEV_SKIP_PAYMENTS && (

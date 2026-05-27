@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { authenticate, corsHeaders, jsonResponse } from '../_shared/auth.ts';
-import { disburse } from '../_shared/airtel.ts';
+import { disburseLipila } from '../_shared/lipila.ts';
 
 // Handles cancellation per spec §8.2 (Runner cancels) and §8.6 (Requester cancels).
 // Body: { requestId, reason?: 'emergency'|'wrong_location'|'item_unavailable'|'other' }
@@ -32,7 +32,7 @@ serve(async (req) => {
     if (amount <= 0) return;
     const { data: u } = await serviceClient.from('users').select('airtel_msisdn').eq('id', r.requester_id).maybeSingle();
     if (!u?.airtel_msisdn) return;
-    await disburse({
+    await disburseLipila({
       serviceClient,
       requestId,
       payeeUserId: r.requester_id,
@@ -40,6 +40,7 @@ serve(async (req) => {
       amount,
       kind: 'cancel_refund',
       refPrefix: 'CANCEL',
+      narration: 'Fastele cancellation refund',
     });
   }
 

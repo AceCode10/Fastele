@@ -1,46 +1,20 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/lib/theme';
+import { Stack } from 'expo-router';
 
-// Spec §4.2 tabs: My Requests | History | Profile.
-// Non-tab screens (new-request, request detail, cancel, raise-offer) auto-hide via tabBarStyle.
+// Stack wraps the (tabs) tabbar so that detail screens (new-request,
+// request/[id], cancel/[id], raise-offer/[id]) get pushed onto the Stack
+// instead of being mounted as Tabs.Screen entries with `href: null`.
+// The href: null pattern crashed Android release builds with
+// react-native-screens@4 + newArchEnabled: "addViewAt: specified child
+// already has a parent" (see app.config.ts §19-24).
 export default function RequesterLayout() {
-  const { c } = useTheme();
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: c.primary,
-        tabBarInactiveTintColor: c.textMuted,
-        tabBarStyle: { backgroundColor: c.bg, borderTopColor: c.border, height: 60, paddingBottom: 6, paddingTop: 6 },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Requests',
-          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen name="new-request" options={{ href: null }} />
-      <Tabs.Screen name="request/[id]" options={{ href: null }} />
-      <Tabs.Screen name="cancel/[id]" options={{ href: null }} />
-      <Tabs.Screen name="raise-offer/[id]" options={{ href: null }} />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="new-request" />
+      <Stack.Screen name="request/[id]" />
+      <Stack.Screen name="cancel/[id]" />
+      <Stack.Screen name="raise-offer/[id]" />
+    </Stack>
   );
 }

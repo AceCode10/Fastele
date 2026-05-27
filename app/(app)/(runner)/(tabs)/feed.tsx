@@ -15,7 +15,7 @@ function RequestCard({ item }: { item: any }) {
   const more = (item.item_list?.length ?? 0) - 2;
 
   return (
-    <Card onPress={() => router.push(`/(app)/(runner)/request/${item.id}/preview` as any)} style={{ marginBottom: spacing.md }}>
+    <Card onPress={() => router.push(`/(app)/runner-request/${item.id}` as any)} style={{ marginBottom: spacing.md }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1, marginRight: spacing.md }}>
           <Text style={[type.bodyStrong, { color: c.text }]} numberOfLines={1}>{item.pickup_location}</Text>
@@ -64,7 +64,7 @@ export default function RunnerFeed() {
           <Text style={[type.body, { color: c.textMuted, marginTop: 6, marginBottom: spacing.md }]}>
             Upload your NRC and a selfie. Approval usually under 24 hours.
           </Text>
-          <Text onPress={() => router.push('/(app)/(runner)/verify' as any)} style={[type.bodyStrong, { color: c.primary }]}>
+          <Text onPress={() => router.push('/(app)/runner-verify' as any)} style={[type.bodyStrong, { color: c.primary }]}>
             Verify Now →
           </Text>
         </Card>

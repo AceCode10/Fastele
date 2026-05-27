@@ -1,7 +1,6 @@
 export { Button } from './Button';
 export { Card } from './Card';
 export { StatusDot } from './StatusDot';
-export { ModeToggle } from './ModeToggle';
 export { Screen } from './Screen';
 export { TextField } from './TextField';
 export { EmptyState } from './EmptyState';

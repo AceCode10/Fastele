@@ -16,11 +16,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     version: "0.1.0",
     orientation: "portrait",
     userInterfaceStyle: "automatic",
-    // Disabled: Fabric/new-arch + react-native-screens@4 + nested Tabs has known
-    // `addViewAt: specified child already has a parent` crashes. The legacy
-    // (paper) renderer is rock-solid with this nav structure. Re-enable once
-    // the underlying RN/screens combo stabilises.
-    newArchEnabled: false,
+    // Reanimated 4 requires the New Architecture. If the historical
+    // `addViewAt: specified child already has a parent` crash with
+    // react-native-screens@4 + nested Tabs reappears, either pin
+    // react-native-screens to a known-good version or downgrade to
+    // Reanimated 3 (which supports the legacy renderer).
+    newArchEnabled: true,
     jsEngine: "hermes",
     scheme: "fastele",
     icon: "./assets/images/icon.png",

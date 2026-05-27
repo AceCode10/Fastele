@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Screen, SkeletonCard, StatusDot } from '@/components/ui';
 import { useRequest } from '@/hooks/useRequest';
@@ -10,7 +10,7 @@ import { assertTapDepth } from '@/lib/threeTap';
 
 // TAP DEPTH: feed card = tap 1. Accept = tap 2. Total: 2. Spec §9.2.
 
-export default function RequestPreview() {
+export default function RunnerRequestPreview() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { c, type, spacing } = useTheme();
   const { data: req, isLoading } = useRequest(id ?? null);

@@ -7,6 +7,7 @@ import { Button, Card, TextField } from '@/components/ui';
 import { getDefaults, saveDefaults } from '@/lib/defaults';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/stores/authStore';
+import { useMode } from '@/stores/modeStore';
 import { useTheme } from '@/lib/theme';
 
 const NOTIF_KEY = 'fastele.notif_enabled';
@@ -17,11 +18,24 @@ export default function Settings() {
   const userId = useAuth((s) => s.userId);
   const signOut = useAuth((s) => s.signOut);
 
+  const mode = useMode((s) => s.mode);
+  const setMode = useMode((s) => s.setMode);
+
   const [pickup, setPickup] = useState('');
   const [delivery, setDelivery] = useState('');
   const [airtelMsisdn, setAirtelMsisdn] = useState('');
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  async function switchMode() {
+    if (switching) return;
+    const target: 'requester' | 'runner' = mode === 'requester' ? 'runner' : 'requester';
+    setSwitching(true);
+    const result = await setMode(target);
+    setSwitching(false);
+    if (!result.ok) Alert.alert('Locked', result.reason);
+  }
 
   useEffect(() => {
     getDefaults().then((d) => {
@@ -64,6 +78,19 @@ export default function Settings() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}>
       <Text style={[type.h1, { color: c.text, marginBottom: spacing.lg }]}>Settings</Text>
+
+      <Card style={{ marginBottom: spacing.lg }}>
+        <Text style={[type.bodyStrong, { color: c.text }]}>Mode</Text>
+        <Text style={[type.caption, { color: c.textMuted, marginTop: 4, marginBottom: spacing.md }]}>
+          Currently: {mode === 'requester' ? 'I need help' : 'I can help'}. Locked while you have an active job.
+        </Text>
+        <Button
+          label={mode === 'requester' ? 'Switch to runner' : 'Switch to requester'}
+          variant="secondary"
+          onPress={switchMode}
+          loading={switching}
+        />
+      </Card>
 
       <Card style={{ marginBottom: spacing.lg }}>
         <Text style={[type.bodyStrong, { color: c.text, marginBottom: spacing.sm }]}>Saved addresses</Text>

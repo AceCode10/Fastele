@@ -21,7 +21,7 @@ async function uploadVerificationPhoto(userId: string, bucket: 'nrc' | 'selfies'
   return `${bucket}/${path}`;
 }
 
-export default function Verify() {
+export default function RunnerVerify() {
   const { c, type, spacing } = useTheme();
   const userId = useAuth((s) => s.userId);
   const refreshProfile = useAuth((s) => s.refreshProfile);

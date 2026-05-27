@@ -78,7 +78,7 @@ export default function Profile() {
           <Button
             label="Verify as Runner"
             variant="secondary"
-            onPress={() => router.push('/(app)/(runner)/verify' as any)}
+            onPress={() => router.push('/(app)/runner-verify' as any)}
             style={{ marginTop: spacing.md }}
           />
         )}

@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { authenticate, corsHeaders, jsonResponse, requireAdmin } from '../_shared/auth.ts';
-import { disburse } from '../_shared/airtel.ts';
+import { disburseLipila } from '../_shared/lipila.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -75,7 +75,7 @@ serve(async (req) => {
   } else {
     const { data: requester } = await serviceClient.from('users').select('airtel_msisdn').eq('id', r.requester_id).maybeSingle();
     if (requester?.airtel_msisdn && safeRefund && safeRefund > 0) {
-      await disburse({
+      await disburseLipila({
         serviceClient,
         requestId: r.id,
         disputeId,
@@ -84,6 +84,7 @@ serve(async (req) => {
         amount: safeRefund,
         kind: 'refund',
         refPrefix: 'REFUND',
+        narration: 'Fastele dispute refund',
       });
     }
     await serviceClient.from('requests').update({ status: 'cancelled', completed_at: now }).eq('id', r.id);

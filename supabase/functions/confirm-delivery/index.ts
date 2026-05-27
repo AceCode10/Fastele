@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { authenticate, corsHeaders, jsonResponse, requireAdmin } from '../_shared/auth.ts';
-import { disburse } from '../_shared/airtel.ts';
+import { disburseLipila } from '../_shared/lipila.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -48,7 +48,7 @@ serve(async (req) => {
 
   let payoutRef: string | null = null;
   if (runner?.airtel_msisdn) {
-    const result = await disburse({
+    const result = await disburseLipila({
       serviceClient,
       requestId,
       payeeUserId: r.runner_id,
@@ -56,6 +56,7 @@ serve(async (req) => {
       amount: runnerPayout,
       kind: 'payout',
       refPrefix: 'PAYOUT',
+      narration: 'Fastele Runner payout',
     });
     if (result.ok) payoutRef = result.reference;
   }

@@ -35,3 +35,8 @@ enabled = true
 # airtel-webhook receives callbacks from Airtel (no JWT) — must be public.
 [functions.airtel-webhook]
 verify_jwt = false
+
+# lipila-callback receives callbacks from Lipila (no JWT) — must be public.
+# Security: defense-in-depth via API check-status round-trip inside the function.
+[functions.lipila-callback]
+verify_jwt = false

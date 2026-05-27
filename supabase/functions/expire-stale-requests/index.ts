@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { disburse } from '../_shared/airtel.ts';
+import { disburseLipila } from '../_shared/lipila.ts';
 
 // Cron: every 5 minutes.
 // Spec §8.1: notify at 30min, auto-expire + full refund at 60min.
@@ -55,7 +55,7 @@ serve(async (_req) => {
     const user = (r as any).users;
 
     if (user?.airtel_msisdn) {
-      await disburse({
+      await disburseLipila({
         serviceClient: supabase,
         requestId: r.id,
         payeeUserId: r.requester_id,
@@ -63,6 +63,7 @@ serve(async (_req) => {
         amount: Number(r.item_budget) + Number(r.runner_fee),
         kind: 'cancel_refund',
         refPrefix: 'EXPIRE',
+        narration: 'Fastele expiry refund',
       });
     }
 
